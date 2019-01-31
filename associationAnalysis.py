@@ -58,7 +58,7 @@ def _determineOutputFileName(filePrefix, name):
 
 def _adjustedAssociationParams(params):
   
-  # if fit is A exp(-B x) + c exp(-D x) then parameters go from
+  # if fit is A exp(-B x) + C exp(-D x) then parameters go from
   # (A, C, B, D) to (A/(A+C), 1/B, C/(A+C), 1/D)
   
   numberExponentials = len(params) // 2
@@ -82,7 +82,7 @@ def _bootstrapFit(xdata, ydata, params_opt, fitFunc, adjustedParamsFunc=None, nt
     try:
       params, params_cov = curve_fit(fitFunc, x, y, p0=params_opt)
     except: # fit might fail
-      pass
+      continue
     if adjustedParamsFunc:
       params = adjustedParamsFunc(params)
     if fp:
@@ -112,7 +112,7 @@ def _findAssociationData(data):
   ydata -= ydata[0]
   ydata /= ydata[-1]
 
-  return ydata
+  return ydata, minData, binSize
 
 def _writeFitAssociationHeader(fp, maxNumberExponentials):
   
@@ -146,6 +146,7 @@ def _writeFitAssociationParams(fp, params, paramsStd, rss, maxNumberExponentials
   data.append('%.3f' % rss)
   
   bic = numpy.log(ndata) * (len(params) + 1) + ndata * (numpy.log(2*numpy.pi*rss/ndata) + 1)
+  #bic = numpy.log(ndata) * (len(params)) + ndata * (numpy.log(rss/ndata))
   data.append('%.3f' % bic)
     
   data = ','.join(data)
@@ -154,7 +155,7 @@ def _writeFitAssociationParams(fp, params, paramsStd, rss, maxNumberExponentials
   
 def fitAssociationData(filePrefix, data, maxNumberExponentials=1, plotDpi=600):
 
-  ydata = _findAssociationData(data)
+  ydata, minData, binSize = _findAssociationData(data)
   xdata = numpy.arange(len(ydata))
   
   params0 = _initialFitAssociationEstimate(ydata)
@@ -177,10 +178,11 @@ def fitAssociationData(filePrefix, data, maxNumberExponentials=1, plotDpi=600):
       params0 = list(params_opt[:numberExponentials]) + [0.1] + list(params_opt[numberExponentials:]) + [0.0]
     
   colors = ['blue', 'red', 'green', 'yellow', 'black']  # assumes no more than 4 exponentials
-  plt.plot(xdata, ydata, color=colors[-1])
+  bdata = minData + (xdata+0.5)*binSize
+  plt.plot(bdata, ydata, color=colors[-1])
   for n in range(maxNumberExponentials):
     yfit = _fitInverseExponentials(xdata, *params_list[n])
-    plt.plot(xdata, yfit, color=colors[n])
+    plt.plot(bdata, yfit, color=colors[n])
   
   fileName = _determineOutputFileName(filePrefix, 'associationFit.png')
   plt.savefig(fileName, dpi=plotDpi, transparent=True)
@@ -205,7 +207,7 @@ if __name__ == '__main__':
     print('Need to specify one or more csv files')
     sys.exit()
 
-  maxNumberExponentials = 2
+  maxNumberExponentials = 3
   plotDpi = 600
   for filePath in sys.argv[1:]:
     processAssociationFile(filePath, maxNumberExponentials, plotDpi)
