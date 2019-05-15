@@ -125,14 +125,19 @@ def _writeFitAssociationHeader(fp, maxNumberExponentials):
     data.append('TErr%d' % (m+1))
   data.append('rss')
   data.append('bic')
+  data.append('total')
+  data.append('minData')
+  data.append('binSize')
     
   data = ','.join(data)
   
   fp.write(data + '\n')
     
-def _writeFitAssociationParams(fp, params, paramsStd, rss, maxNumberExponentials, ndata, binSize):
-  
+def _writeFitAssociationParams(fp, params, paramsStd, rss, maxNumberExponentials, ndata, binSize, minData):
   numberExponentials = len(params) // 2
+  
+  total = sum(params[:numberExponentials])
+
   params = _adjustedAssociationParams(params, binSize)
   n = 2 * (maxNumberExponentials - numberExponentials)
   
@@ -148,6 +153,10 @@ def _writeFitAssociationParams(fp, params, paramsStd, rss, maxNumberExponentials
   bic = numpy.log(ndata) * (len(params) + 1) + ndata * (numpy.log(2*numpy.pi*rss/ndata) + 1)
   #bic = numpy.log(ndata) * (len(params)) + ndata * (numpy.log(rss/ndata))
   data.append('%.3e' % bic)
+  
+  data.append('%.3e' % total)
+  data.append('%.3e' % minData)
+  data.append('%.3e' % binSize)
     
   data = ','.join(data)
   
@@ -173,7 +182,7 @@ def fitAssociationData(filePrefix, data, maxNumberExponentials=1, plotDpi=600):
       rss = numpy.sum((yfit - ydata)**2)
       print('Fitting association with %d exponential%s, parameters = %s, parameter standard deviation = %s, rss = %f' % (numberExponentials, ss, params_opt, params_err, rss))
       paramsStd = _bootstrapFit(xdata, ydata, params_opt, _fitInverseExponentials, _adjustedAssociationParams)
-      _writeFitAssociationParams(fp, params_opt, paramsStd, rss, maxNumberExponentials, len(xdata), binSize)
+      _writeFitAssociationParams(fp, params_opt, paramsStd, rss, maxNumberExponentials, len(xdata), binSize, minData)
       params_list.append(params_opt)
       params0 = list(params_opt[:numberExponentials]) + [0.1] + list(params_opt[numberExponentials:]) + [0.0]
     
