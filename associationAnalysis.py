@@ -56,7 +56,7 @@ def _determineOutputFileName(filePrefix, name):
   
   return fileName
 
-def _adjustedAssociationParams(params):
+def _adjustedAssociationParams(params, binSize=1.0):
   
   # if fit is A exp(-B x) + C exp(-D x) then parameters go from
   # (A, C, B, D) to (A/(A+C), 1/B, C/(A+C), 1/D)
@@ -66,7 +66,7 @@ def _adjustedAssociationParams(params):
   paramsNew = (2*numberExponentials)*[0]
   for i in range(numberExponentials):
     paramsNew[2*i] = params[i] / s
-    paramsNew[2*i+1] = 1 / params[i+numberExponentials]
+    paramsNew[2*i+1] = binSize / params[i+numberExponentials]
     
   return paramsNew
 
@@ -130,24 +130,24 @@ def _writeFitAssociationHeader(fp, maxNumberExponentials):
   
   fp.write(data + '\n')
     
-def _writeFitAssociationParams(fp, params, paramsStd, rss, maxNumberExponentials, ndata):
+def _writeFitAssociationParams(fp, params, paramsStd, rss, maxNumberExponentials, ndata, binSize):
   
   numberExponentials = len(params) // 2
-  params = _adjustedAssociationParams(params)
+  params = _adjustedAssociationParams(params, binSize)
   n = 2 * (maxNumberExponentials - numberExponentials)
   
   data = ['%d' % numberExponentials]
-  data.extend(['%.3f' % param for param in params])
+  data.extend(['%.3e' % param for param in params])
   data.extend(n*[''])
   
-  data.extend(['%.3f' % param for param in paramsStd])
+  data.extend(['%.3e' % param for param in paramsStd])
   data.extend(n*[''])
   
-  data.append('%.3f' % rss)
+  data.append('%.3e' % rss)
   
   bic = numpy.log(ndata) * (len(params) + 1) + ndata * (numpy.log(2*numpy.pi*rss/ndata) + 1)
   #bic = numpy.log(ndata) * (len(params)) + ndata * (numpy.log(rss/ndata))
-  data.append('%.3f' % bic)
+  data.append('%.3e' % bic)
     
   data = ','.join(data)
   
@@ -173,7 +173,7 @@ def fitAssociationData(filePrefix, data, maxNumberExponentials=1, plotDpi=600):
       rss = numpy.sum((yfit - ydata)**2)
       print('Fitting association with %d exponential%s, parameters = %s, parameter standard deviation = %s, rss = %f' % (numberExponentials, ss, params_opt, params_err, rss))
       paramsStd = _bootstrapFit(xdata, ydata, params_opt, _fitInverseExponentials, _adjustedAssociationParams)
-      _writeFitAssociationParams(fp, params_opt, paramsStd, rss, maxNumberExponentials, len(xdata))
+      _writeFitAssociationParams(fp, params_opt, paramsStd, rss, maxNumberExponentials, len(xdata), binSize)
       params_list.append(params_opt)
       params0 = list(params_opt[:numberExponentials]) + [0.1] + list(params_opt[numberExponentials:]) + [0.0]
     
@@ -182,6 +182,7 @@ def fitAssociationData(filePrefix, data, maxNumberExponentials=1, plotDpi=600):
   plt.plot(bdata, ydata, color=colors[-1])
   for n in range(maxNumberExponentials):
     yfit = _fitInverseExponentials(xdata, *params_list[n])
+    #print('HERE111', n, params_list[n], bdata, yfit, binSize, minData)
     plt.plot(bdata, yfit, color=colors[n])
   
   fileName = _determineOutputFileName(filePrefix, 'associationFit.png')
