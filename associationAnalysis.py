@@ -198,6 +198,15 @@ def fitAssociationData(filePrefix, data, maxNumberExponentials=1, plotDpi=600):
   plt.savefig(fileName, dpi=plotDpi, transparent=True)
   #plt.show()
   plt.close()
+  
+  # individual plots for each exponential fit and drawing it as incremental rather than cumulative
+  for n in range(maxNumberExponentials):
+    plt.plot(bdata, 1-ydata, color='black', linestyle='dashed')
+    yfit = 1 - _fitInverseExponentials(xdata, *params_list[n])
+    plt.plot(bdata, yfit, color='blue')
+    fileName = _determineOutputFileName(filePrefix, 'associationFit_%d.png' % (n+1))
+    plt.savefig(fileName, dpi=plotDpi, transparent=True)
+    plt.close()
 
 def processAssociationFile(filePath, maxNumberExponentials=1, plotDpi=600):
 
