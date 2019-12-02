@@ -115,7 +115,7 @@ def _bootstrapFit(data, params_opt, fitFunc, adjustedParamsFunc=None, ntrials=10
     trialData = data[indices]
     ydata, minData, binSize = _findAssociationData(trialData)
     xdata = numpy.arange(len(ydata))
-    params0 = _initialFitAssociationEstimate(ydata)
+    params0 = params_opt # _initialFitAssociationEstimate(ydata)
   
     try:
       params, params_cov = curve_fit(fitFunc, xdata, ydata, p0=params0)
